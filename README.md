@@ -21,6 +21,9 @@ Create the docker deployment
 
 ```
 kubectl create deploy hashber --image=hashber:latest --replicas=1 --port=8090 --port=7946
+
+# patch the deployment to not pull images and use minikube local images
+kubectl patch deployment hashber --patch '{"spec": {"template": {"spec": {"containers": [{"name": "hashber","imagePullPolicy": "Never"}]}}}}'
 ```
 
 Expose it via a service
