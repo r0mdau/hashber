@@ -26,10 +26,16 @@ kubectl create deploy hashber --image=hashber:latest --replicas=1 --port=8090 --
 kubectl patch deployment hashber --patch '{"spec": {"template": {"spec": {"containers": [{"name": "hashber","imagePullPolicy": "Never"}]}}}}'
 ```
 
-Expose it via a service
+Expose memberlist via a service
 
 ```
-kubectl expose deploy/hashber
+kubectl expose deploy/hashber --name=hashber-memberlist --port=7946
+```
+
+Expose hashber http API via a NodePort service
+
+```
+kubectl expose deploy/hashber --name=hashber --port=8090 --type=NodePort
 ```
 
 Then look at the logs and change replicas number in another terminal
@@ -37,3 +43,14 @@ Then look at the logs and change replicas number in another terminal
 ```
 kubectl scale --replicas=3 deploy/hashber
 ```
+
+Contact the hello API, you need to find your minikube master ip
+
+```
+# get nodeport port
+kubectl get svc
+# call aPI
+curl http://192.168.49.2:30998/hello
+```
+
+Look at the logs to see who receive the request and who respond to it.

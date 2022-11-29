@@ -2,17 +2,44 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/hashicorp/memberlist"
+	"github.com/serialx/hashring"
 )
 
 var list *memberlist.Memberlist
+var ring *hashring.HashRing
+
+const port = ":8090"
 
 func hello(w http.ResponseWriter, req *http.Request) {
+	server, _ := ring.GetNode("hello")
+	fmt.Println("Selecting node", server)
 
-	fmt.Fprintf(w, "hello\n")
+	if os.Getenv("MY_POD_IP") != server {
+		fmt.Println("I am forwarding hello")
+		resp, err := http.Get(fmt.Sprintf("http://%s%s/hello", server, port))
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
+
+		fmt.Println("Response status:", resp.Status)
+
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Printf("client: could not read response body: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprint(w, string(respBody))
+	} else {
+		fmt.Println("I am responding hello")
+		fmt.Fprintf(w, "hello\n")
+	}
 }
 
 func headers(w http.ResponseWriter, req *http.Request) {
@@ -33,7 +60,7 @@ func main() {
 	http.HandleFunc("/hello", hello)
 	http.HandleFunc("/headers", headers)
 
-	http.ListenAndServe(":8090", nil)
+	http.ListenAndServe(port, nil)
 }
 
 func memberList() {
@@ -44,22 +71,23 @@ func memberList() {
 	}
 
 	// Join an existing cluster by specifying at least one known member.
-	_, err = list.Join([]string{"hashber.default.svc.cluster.local"})
+	_, err = list.Join([]string{"hashber-memberlist.default.svc.cluster.local"})
 	if err != nil {
 		fmt.Printf("Failed to join cluster: " + err.Error())
 	}
 
 	// Ask for members of the cluster
 	for _, member := range list.Members() {
-		fmt.Printf("Member list youpi : %s %s\n", member.Name, member.Addr)
+		fmt.Printf("Startup member list : %s %s\n", member.Name, member.Addr)
 	}
 }
 
 func memberBeat() {
 	for range time.Tick(time.Second * 3) {
-		fmt.Println("--- Start member beat ---")
+		servers := []string{}
 		for _, member := range list.Members() {
-			fmt.Printf("Member list beat : %s %s\n", member.Name, member.Addr)
+			servers = append(servers, member.Addr.String())
 		}
+		ring = hashring.New(servers)
 	}
 }
