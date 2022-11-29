@@ -24,3 +24,7 @@ test:
 
 verify: fmt test
 .PHONY:verify
+
+docker: build
+	docker build -t hashber .
+.PHONY:docker
