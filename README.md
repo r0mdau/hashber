@@ -58,3 +58,10 @@ for i in {1..1000}; do sleep 1;curl http://192.168.49.2:31290/hello; done
 ```
 
 Look at the logs to see who receive the request and who respond to it.
+
+How to re deploy a new version
+
+```
+make docker
+kubectl patch deployment $1 -p "{\"spec\": {\"template\": {\"metadata\": { \"labels\": {  \"redeploy\": \"$(date +%s)\"}}}}}"
+```

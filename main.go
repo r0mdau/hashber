@@ -37,8 +37,8 @@ func hello(w http.ResponseWriter, req *http.Request) {
 		}
 		fmt.Fprint(w, string(respBody))
 	} else {
-		fmt.Println("I am responding hello")
-		fmt.Fprintf(w, "hello\n")
+		msg := fmt.Sprintf("hello from %s\n", server)
+		fmt.Fprint(w, msg)
 	}
 }
 
