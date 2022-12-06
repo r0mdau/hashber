@@ -49,8 +49,12 @@ Contact the hello API, you need to find your minikube master ip
 ```
 # get nodeport port
 kubectl get svc
+
 # call aPI
-curl http://192.168.49.2:30998/hello
+curl http://192.168.49.2:31290/hello
+
+# launch multiple calls
+for i in {1..1000}; do sleep 1;curl http://192.168.49.2:31290/hello; done
 ```
 
 Look at the logs to see who receive the request and who respond to it.
