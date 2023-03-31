@@ -24,6 +24,9 @@ kubectl create deploy hashber --image=hashber:latest --replicas=1 --port=8090 --
 
 # patch the deployment to not pull images and use minikube local images
 kubectl patch deployment hashber --patch '{"spec": {"template": {"spec": {"containers": [{"name": "hashber","imagePullPolicy": "Never"}]}}}}'
+
+# patch again to allow pod to know their own IP adresse and avoid infinte loop
+kubectl patch deployment hashber --patch '{"spec": {"template": {"spec": {"containers": [{"name": "hashber","env": [{"name": "MY_POD_IP", "valueFrom": {"fieldRef": {"fieldPath": "status.podIP"}}}]}]}}}}'
 ```
 
 Expose memberlist via a service
