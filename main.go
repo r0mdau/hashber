@@ -18,7 +18,7 @@ const port = ":8090"
 
 func hello(w http.ResponseWriter, req *http.Request) {
 	server, _ := ring.GetNode("hello")
-	fmt.Println("Selecting node", server)
+	fmt.Println("Selected node", server, "from the hashring")
 
 	if os.Getenv("MY_POD_IP") != server {
 		fmt.Println("I am forwarding hello")
@@ -37,13 +37,13 @@ func hello(w http.ResponseWriter, req *http.Request) {
 		}
 		fmt.Fprint(w, string(respBody))
 	} else {
-		msg := fmt.Sprintf("hello from %s\n", server)
+		msg := fmt.Sprintf("Hello from %s\n", server)
 		fmt.Fprint(w, msg)
+		fmt.Println("Hello from me \\o/")
 	}
 }
 
 func headers(w http.ResponseWriter, req *http.Request) {
-
 	for name, headers := range req.Header {
 		for _, h := range headers {
 			fmt.Fprintf(w, "%v: %v\n", name, h)
@@ -51,16 +51,14 @@ func headers(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func main() {
-
-	// Start the gossip
-	go memberList()
-	go memberBeat()
-
-	http.HandleFunc("/hello", hello)
-	http.HandleFunc("/headers", headers)
-
-	http.ListenAndServe(port, nil)
+func memberBeat() {
+	for range time.Tick(time.Second * 3) {
+		servers := []string{}
+		for _, member := range list.Members() {
+			servers = append(servers, member.Addr.String())
+		}
+		ring = hashring.New(servers)
+	}
 }
 
 func memberList() {
@@ -82,12 +80,14 @@ func memberList() {
 	}
 }
 
-func memberBeat() {
-	for range time.Tick(time.Second * 3) {
-		servers := []string{}
-		for _, member := range list.Members() {
-			servers = append(servers, member.Addr.String())
-		}
-		ring = hashring.New(servers)
-	}
+func main() {
+
+	// Start the gossip
+	go memberList()
+	go memberBeat()
+
+	http.HandleFunc("/hello", hello)
+	http.HandleFunc("/headers", headers)
+
+	http.ListenAndServe(port, nil)
 }
